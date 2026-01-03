@@ -446,6 +446,19 @@ require('lazy').setup({
       vim.api.nvim_create_autocmd('LspAttach', {
         group = vim.api.nvim_create_augroup('kickstart-lsp-attach', { clear = true }),
         callback = function(event)
+          -- Apply Java syntax highlights when LSP attaches
+          vim.api.nvim_set_hl(0, '@lsp.type.modifier.java', { fg = '#bb9af7' })
+          vim.api.nvim_set_hl(0, '@lsp.type.keyword.java', { fg = '#bb9af7' })
+          vim.api.nvim_set_hl(0, '@lsp.type.class.java', { fg = '#2ac3de' })
+          vim.api.nvim_set_hl(0, '@lsp.type.interface.java', { fg = '#2ac3de' })
+          vim.api.nvim_set_hl(0, '@lsp.type.type.java', { fg = '#2ac3de' })
+          vim.api.nvim_set_hl(0, '@lsp.type.method.java', { fg = '#7aa2f7' })
+          vim.api.nvim_set_hl(0, '@lsp.type.variable.java', { fg = '#c0caf5' })
+          vim.api.nvim_set_hl(0, '@lsp.type.parameter.java', { fg = '#e0af68' })
+          vim.api.nvim_set_hl(0, '@lsp.type.property.java', { fg = '#c0caf5' })
+          vim.api.nvim_set_hl(0, '@lsp.type.enumMember.java', { fg = '#ff9e64' })
+          vim.api.nvim_set_hl(0, '@lsp.type.annotation.java', { fg = '#e0af68' })
+
           -- NOTE: Remember that Lua is a real programming language, and as such it is possible
           -- to define small helper and utility functions so you don't have to repeat yourself.
           --
@@ -806,8 +819,9 @@ require('lazy').setup({
     -- change the command in the config to whatever the name of that colorscheme is.
     --
     -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    -- 'folke/tokyonight.nvim',
+    'folke/tokyonight.nvim',
     'ellisonleao/gruvbox.nvim',
+    'shaunsingh/nord.nvim',
     -- 'projekt0n/github-nvim-theme',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     config = function()
@@ -817,11 +831,8 @@ require('lazy').setup({
           comments = { italic = false }, -- Disable italics in comments
         },
       }
-
       -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'gruvbox'
+      vim.cmd.colorscheme 'tokyonight-night'
     end,
   },
 
@@ -921,7 +932,7 @@ require('lazy').setup({
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
-    main = 'nvim-treesitter.configs', -- Sets main module to use for opts
+    main = 'nvim-treesitter.config', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
       ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc', 'java' },
@@ -943,7 +954,7 @@ require('lazy').setup({
     --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
     --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
   },
-
+  --
   -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
   -- init.lua. If you want these files, they are in the repository, so you can just download them and
   -- place them in the correct locations.
