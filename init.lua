@@ -446,19 +446,6 @@ require('lazy').setup({
       vim.api.nvim_create_autocmd('LspAttach', {
         group = vim.api.nvim_create_augroup('kickstart-lsp-attach', { clear = true }),
         callback = function(event)
-          -- Apply Java syntax highlights when LSP attaches
-          vim.api.nvim_set_hl(0, '@lsp.type.modifier.java', { fg = '#bb9af7' })
-          vim.api.nvim_set_hl(0, '@lsp.type.keyword.java', { fg = '#bb9af7' })
-          vim.api.nvim_set_hl(0, '@lsp.type.class.java', { fg = '#2ac3de' })
-          vim.api.nvim_set_hl(0, '@lsp.type.interface.java', { fg = '#2ac3de' })
-          vim.api.nvim_set_hl(0, '@lsp.type.type.java', { fg = '#2ac3de' })
-          vim.api.nvim_set_hl(0, '@lsp.type.method.java', { fg = '#7aa2f7' })
-          vim.api.nvim_set_hl(0, '@lsp.type.variable.java', { fg = '#c0caf5' })
-          vim.api.nvim_set_hl(0, '@lsp.type.parameter.java', { fg = '#e0af68' })
-          vim.api.nvim_set_hl(0, '@lsp.type.property.java', { fg = '#c0caf5' })
-          vim.api.nvim_set_hl(0, '@lsp.type.enumMember.java', { fg = '#ff9e64' })
-          vim.api.nvim_set_hl(0, '@lsp.type.annotation.java', { fg = '#e0af68' })
-
           -- NOTE: Remember that Lua is a real programming language, and as such it is possible
           -- to define small helper and utility functions so you don't have to repeat yourself.
           --
@@ -506,26 +493,13 @@ require('lazy').setup({
           --  the definition of its *type*, not where it was *defined*.
           map('grt', require('telescope.builtin').lsp_type_definitions, '[G]oto [T]ype Definition')
 
-          -- This function resolves a difference between neovim nightly (version 0.11) and stable (version 0.10)
-          ---@param client vim.lsp.Client
-          ---@param method vim.lsp.protocol.Method
-          ---@param bufnr? integer some lsp support methods only in specific files
-          ---@return boolean
-          local function client_supports_method(client, method, bufnr)
-            if vim.fn.has 'nvim-0.11' == 1 then
-              return client:supports_method(method, bufnr)
-            else
-              return client.supports_method(method, { bufnr = bufnr })
-            end
-          end
-
           -- The following two autocommands are used to highlight references of the
           -- word under your cursor when your cursor rests there for a little while.
           --    See `:help CursorHold` for information about when this is executed
           --
           -- When you move your cursor, the highlights will be cleared (the second autocommand).
           local client = vim.lsp.get_client_by_id(event.data.client_id)
-          if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_documentHighlight, event.buf) then
+          if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_documentHighlight, event.buf) then
             local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight', { clear = false })
             vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
               buffer = event.buf,
@@ -552,7 +526,7 @@ require('lazy').setup({
           -- code, if the language server you are using supports them
           --
           -- This may be unwanted, since they displace some of your code
-          if client and client_supports_method(client, vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf) then
+          if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf) then
             map('<leader>th', function()
               vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
             end, '[T]oggle Inlay [H]ints')
@@ -667,7 +641,8 @@ require('lazy').setup({
             -- by the server configuration above. Useful when disabling
             -- certain features of an LSP (for example, turning off formatting for ts_ls)
             server.capabilities = vim.tbl_deep_extend('force', {}, capabilities, server.capabilities or {})
-            require('lspconfig')[server_name].setup(server)
+            vim.lsp.config(server_name, server)
+            vim.lsp.enable(server_name)
           end,
         },
       }
@@ -832,7 +807,37 @@ require('lazy').setup({
         },
       }
       -- Load the colorscheme here.
+      -- Like many other themes, this one has different styles, and you could load
+      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
       vim.cmd.colorscheme 'tokyonight-night'
+
+      -- Custom highlight overrides for better Java syntax highlighting
+      -- Treesitter highlights
+      vim.api.nvim_set_hl(0, '@keyword', { fg = '#bb9af7' }) -- purple for keywords (public, class, void, etc.)
+      vim.api.nvim_set_hl(0, '@keyword.function', { fg = '#bb9af7' }) -- purple for def, function keywords
+      vim.api.nvim_set_hl(0, '@type', { fg = '#2ac3de' }) -- cyan for class names and types
+      vim.api.nvim_set_hl(0, '@type.builtin', { fg = '#2ac3de' }) -- cyan for built-in types (int, String, etc.)
+      vim.api.nvim_set_hl(0, '@variable', { fg = '#c0caf5' }) -- light blue/white for variables
+      vim.api.nvim_set_hl(0, '@function', { fg = '#7aa2f7' }) -- blue for function/method names
+      vim.api.nvim_set_hl(0, '@function.call', { fg = '#7aa2f7' }) -- blue for function calls
+      vim.api.nvim_set_hl(0, '@constant', { fg = '#ff9e64' }) -- orange for constants
+      vim.api.nvim_set_hl(0, '@string', { fg = '#9ece6a' }) -- green for strings
+      vim.api.nvim_set_hl(0, '@number', { fg = '#ff9e64' }) -- orange for numbers
+      vim.api.nvim_set_hl(0, '@operator', { fg = '#89ddff' }) -- cyan for operators
+      vim.api.nvim_set_hl(0, '@punctuation', { fg = '#89ddff' }) -- cyan for punctuation
+
+      -- LSP semantic token highlights for Java (these have higher priority than Treesitter)
+      vim.api.nvim_set_hl(0, '@lsp.type.modifier.java', { fg = '#bb9af7' }) -- purple for modifiers (public, private, static, final, etc.)
+      vim.api.nvim_set_hl(0, '@lsp.type.keyword.java', { fg = '#bb9af7' }) -- purple for keywords (class, void, return, etc.)
+      vim.api.nvim_set_hl(0, '@lsp.type.class.java', { fg = '#2ac3de' }) -- cyan for class names
+      vim.api.nvim_set_hl(0, '@lsp.type.interface.java', { fg = '#2ac3de' }) -- cyan for interfaces
+      vim.api.nvim_set_hl(0, '@lsp.type.type.java', { fg = '#2ac3de' }) -- cyan for types
+      vim.api.nvim_set_hl(0, '@lsp.type.method.java', { fg = '#7aa2f7' }) -- blue for methods
+      vim.api.nvim_set_hl(0, '@lsp.type.variable.java', { fg = '#c0caf5' }) -- light blue for variables
+      vim.api.nvim_set_hl(0, '@lsp.type.parameter.java', { fg = '#e0af68' }) -- yellow for parameters
+      vim.api.nvim_set_hl(0, '@lsp.type.property.java', { fg = '#c0caf5' }) -- light blue for properties/fields
+      vim.api.nvim_set_hl(0, '@lsp.type.enumMember.java', { fg = '#ff9e64' }) -- orange for enum members
+      vim.api.nvim_set_hl(0, '@lsp.type.annotation.java', { fg = '#e0af68' }) -- yellow for annotations
     end,
   },
 
