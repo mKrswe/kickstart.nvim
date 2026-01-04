@@ -114,6 +114,43 @@ vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right win
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
 vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper window' })
 
+-- Toggle between Java source and test files (like IntelliJ's Ctrl+Shift+T)
+local function toggle_java_test()
+  local file = vim.fn.expand '%:p'
+  local alternate
+
+  if file:match '/src/main/java/' then
+    -- Switch from source to test
+    alternate = file:gsub('/src/main/java/', '/src/test/java/'):gsub('%.java$', 'Test.java')
+  elseif file:match '/src/test/java/' then
+    -- Switch from test to source
+    alternate = file:gsub('/src/test/java/', '/src/main/java/'):gsub('Test%.java$', '.java')
+  else
+    print 'Not a Java source or test file'
+    return
+  end
+
+  if alternate and vim.fn.filereadable(alternate) == 1 then
+    vim.cmd('edit ' .. vim.fn.fnameescape(alternate))
+  else
+    print('Alternate file not found: ' .. (alternate or 'unknown'))
+  end
+end
+
+vim.keymap.set('n', '<leader>tt', toggle_java_test, { desc = '[T]oggle [T]est/Source' })
+
+-- Java test keybindings (only set in Java files)
+-- Report will auto-show when tests complete (configured in nvim-java setup)
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = 'java',
+  callback = function()
+    vim.keymap.set('n', '<leader>tc', '<cmd>JavaTestRunCurrentClass<cr>', { buffer = true, desc = '[T]est [C]urrent Class' })
+    vim.keymap.set('n', '<leader>tm', '<cmd>JavaTestRunCurrentMethod<cr>', { buffer = true, desc = '[T]est Current [M]ethod' })
+    vim.keymap.set('n', '<leader>tr', '<cmd>JavaTestViewLastReport<cr>', { buffer = true, desc = '[T]est View Last [R]eport' })
+    vim.keymap.set('n', '<leader>td', '<cmd>JavaTestDebugCurrentClass<cr>', { buffer = true, desc = '[T]est [D]ebug Current Class' })
+  end,
+})
+
 -- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
 -- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
 -- vim.keymap.set("n", "<C-S-l>", "<C-w>L", { desc = "Move window to the right" })
@@ -385,6 +422,12 @@ require('lazy').setup({
             spring_boot_tools = {
               enable = true,
             },
+            java_test = {
+              enable = true,
+            },
+            java_debug_adapter = {
+              enable = true,
+            },
             jdtls = {
               settings = {
                 java = {
@@ -400,6 +443,28 @@ require('lazy').setup({
             },
           }
           vim.lsp.enable 'jdtls'
+
+          -- Hook into test completion to auto-show report
+          local java_test = require 'java-test'
+          local original_get_report = java_test.get_report
+
+          java_test.get_report = function()
+            local report = original_get_report()
+            local original_on_close = report.on_close
+
+            -- Override on_close to show report when tests complete
+            report.on_close = function(self)
+              if original_on_close then
+                original_on_close(self)
+              end
+              -- Show report after tests finish
+              vim.schedule(function()
+                self:show_report()
+              end)
+            end
+
+            return report
+          end
         end,
       },
 
