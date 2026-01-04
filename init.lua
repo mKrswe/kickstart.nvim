@@ -789,55 +789,20 @@ require('lazy').setup({
     },
   },
 
-  { -- You can easily change to a different colorscheme.
-    -- Change the name of the colorscheme plugin below, and then
-    -- change the command in the config to whatever the name of that colorscheme is.
-    --
-    -- If you want to see what colorschemes are already installed, you can use `:Telescope colorscheme`.
-    'folke/tokyonight.nvim',
-    'ellisonleao/gruvbox.nvim',
-    'shaunsingh/nord.nvim',
-    -- 'projekt0n/github-nvim-theme',
+  {
+    'cocopon/iceberg.vim',
     priority = 1000, -- Make sure to load this before all the other start plugins.
     config = function()
       ---@diagnostic disable-next-line: missing-fields
-      require('gruvbox').setup {
-        styles = {
-          comments = { italic = false }, -- Disable italics in comments
-        },
-      }
+      -- require('gruvbox').setup {
+      --   styles = {
+      --     comments = { italic = false }, -- Disable italics in comments
+      --   },
+      -- }
       -- Load the colorscheme here.
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'tokyonight-night'
-
-      -- Custom highlight overrides for better Java syntax highlighting
-      -- Treesitter highlights
-      vim.api.nvim_set_hl(0, '@keyword', { fg = '#bb9af7' }) -- purple for keywords (public, class, void, etc.)
-      vim.api.nvim_set_hl(0, '@keyword.function', { fg = '#bb9af7' }) -- purple for def, function keywords
-      vim.api.nvim_set_hl(0, '@type', { fg = '#2ac3de' }) -- cyan for class names and types
-      vim.api.nvim_set_hl(0, '@type.builtin', { fg = '#2ac3de' }) -- cyan for built-in types (int, String, etc.)
-      vim.api.nvim_set_hl(0, '@variable', { fg = '#c0caf5' }) -- light blue/white for variables
-      vim.api.nvim_set_hl(0, '@function', { fg = '#7aa2f7' }) -- blue for function/method names
-      vim.api.nvim_set_hl(0, '@function.call', { fg = '#7aa2f7' }) -- blue for function calls
-      vim.api.nvim_set_hl(0, '@constant', { fg = '#ff9e64' }) -- orange for constants
-      vim.api.nvim_set_hl(0, '@string', { fg = '#9ece6a' }) -- green for strings
-      vim.api.nvim_set_hl(0, '@number', { fg = '#ff9e64' }) -- orange for numbers
-      vim.api.nvim_set_hl(0, '@operator', { fg = '#89ddff' }) -- cyan for operators
-      vim.api.nvim_set_hl(0, '@punctuation', { fg = '#89ddff' }) -- cyan for punctuation
-
-      -- LSP semantic token highlights for Java (these have higher priority than Treesitter)
-      vim.api.nvim_set_hl(0, '@lsp.type.modifier.java', { fg = '#bb9af7' }) -- purple for modifiers (public, private, static, final, etc.)
-      vim.api.nvim_set_hl(0, '@lsp.type.keyword.java', { fg = '#bb9af7' }) -- purple for keywords (class, void, return, etc.)
-      vim.api.nvim_set_hl(0, '@lsp.type.class.java', { fg = '#2ac3de' }) -- cyan for class names
-      vim.api.nvim_set_hl(0, '@lsp.type.interface.java', { fg = '#2ac3de' }) -- cyan for interfaces
-      vim.api.nvim_set_hl(0, '@lsp.type.type.java', { fg = '#2ac3de' }) -- cyan for types
-      vim.api.nvim_set_hl(0, '@lsp.type.method.java', { fg = '#7aa2f7' }) -- blue for methods
-      vim.api.nvim_set_hl(0, '@lsp.type.variable.java', { fg = '#c0caf5' }) -- light blue for variables
-      vim.api.nvim_set_hl(0, '@lsp.type.parameter.java', { fg = '#e0af68' }) -- yellow for parameters
-      vim.api.nvim_set_hl(0, '@lsp.type.property.java', { fg = '#c0caf5' }) -- light blue for properties/fields
-      vim.api.nvim_set_hl(0, '@lsp.type.enumMember.java', { fg = '#ff9e64' }) -- orange for enum members
-      vim.api.nvim_set_hl(0, '@lsp.type.annotation.java', { fg = '#e0af68' }) -- yellow for annotations
+      vim.cmd.colorscheme 'iceberg'
     end,
   },
 
@@ -952,41 +917,12 @@ require('lazy').setup({
       },
       indent = { enable = true, disable = { 'ruby' } },
     },
-    -- There are additional nvim-treesitter modules that you can use to interact
-    -- with nvim-treesitter. You should go explore a few and see what interests you:
-    --
-    --    - Incremental selection: Included, see `:help nvim-treesitter-incremental-selection-mod`
-    --    - Show your current context: https://github.com/nvim-treesitter/nvim-treesitter-context
-    --    - Treesitter + textobjects: https://github.com/nvim-treesitter/nvim-treesitter-textobjects
   },
-  --
-  -- The following comments only work if you have downloaded the kickstart repo, not just copy pasted the
-  -- init.lua. If you want these files, they are in the repository, so you can just download them and
-  -- place them in the correct locations.
 
-  -- NOTE: Next step on your Neovim journey: Add/Configure additional plugins for Kickstart
-  --
-  --  Here are some example plugins that I've included in the Kickstart repository.
-  --  Uncomment any of the lines below to enable them (you will need to restart nvim).
-  --
   require 'kickstart.plugins.debug',
-  -- require 'kickstart.plugins.indent_line',
-  -- require 'kickstart.plugins.lint',
   require 'kickstart.plugins.autopairs',
   require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.lazygit',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
-
-  -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
-  --    This is the easiest way to modularize your config.
-  --
-  --  Uncomment the following line and add your plugins to `lua/custom/plugins/*.lua` to get going.
-  -- { import = 'custom.plugins' },
-  --
-  -- For additional information with loading, sourcing and examples see `:help lazy.nvim-🔌-plugin-spec`
-  -- Or use telescope!
-  -- In normal mode type `<space>sh` then write `lazy.nvim-plugin`
-  -- you can continue same window with `<space>sr` which resumes last telescope search
 }, {
   ui = {
     -- If you are using a Nerd Font: set icons to an empty table which will use the
