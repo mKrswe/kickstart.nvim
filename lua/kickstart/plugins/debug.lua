@@ -106,16 +106,55 @@ return {
       --    Don't feel like these are good choices.
       icons = { expanded = '▾', collapsed = '▸', current_frame = '*' },
       controls = {
+        element = 'repl',
+        enabled = true,
         icons = {
-          pause = '⏸',
-          play = '▶',
-          step_into = '⏎',
-          step_over = '⏭',
-          step_out = '⏮',
-          step_back = 'b',
-          run_last = '▶▶',
-          terminate = '⏹',
-          disconnect = '⏏',
+          pause = '⏸ Pause',
+          play = '▶ F5',
+          step_into = '⏎ F1',
+          step_over = '⏭ F2',
+          step_out = '⏮ F3',
+          step_back = 'b Back',
+          run_last = '▶▶ Rerun',
+          terminate = '⏹ Stop',
+          disconnect = '⏏ Disconnect',
+        },
+      },
+      mappings = {
+        -- Keybinds within DAP UI windows
+        expand = { '<CR>', '<2-LeftMouse>' },
+        open = 'o',
+        remove = 'd',
+        edit = 'e',
+        repl = 'r',
+        toggle = 't',
+      },
+      layouts = {
+        {
+          elements = {
+            { id = 'scopes', size = 0.25 },
+            { id = 'breakpoints', size = 0.25 },
+            { id = 'stacks', size = 0.25 },
+            { id = 'watches', size = 0.25 },
+          },
+          size = 40,
+          position = 'left',
+        },
+        {
+          elements = {
+            { id = 'repl', size = 0.5 },
+            { id = 'console', size = 0.5 },
+          },
+          size = 10,
+          position = 'bottom',
+        },
+      },
+      floating = {
+        max_height = nil,
+        max_width = nil,
+        border = 'single',
+        mappings = {
+          close = { 'q', '<Esc>' },
         },
       },
     }
@@ -135,6 +174,51 @@ return {
     dap.listeners.after.event_initialized['dapui_config'] = dapui.open
     dap.listeners.before.event_terminated['dapui_config'] = dapui.close
     dap.listeners.before.event_exited['dapui_config'] = dapui.close
+
+    -- Show debug keybinds helper in DAP UI windows
+    vim.api.nvim_create_autocmd('FileType', {
+      pattern = 'dap-repl',
+      callback = function()
+        vim.keymap.set('n', '?', function()
+          local help_text = {
+            'Debug Keybindings:',
+            '',
+            'F5  - Continue/Start',
+            'F1  - Step Into',
+            'F2  - Step Over',
+            'F3  - Step Out',
+            'F7  - Toggle DAP UI',
+            '',
+            '<leader>b - Toggle Breakpoint',
+            '<leader>B - Set Conditional Breakpoint',
+            '',
+            'Press q to close this window',
+          }
+
+          local buf = vim.api.nvim_create_buf(false, true)
+          vim.api.nvim_buf_set_lines(buf, 0, -1, false, help_text)
+          vim.bo[buf].modifiable = false
+
+          local width = 40
+          local height = #help_text
+          local win = vim.api.nvim_open_win(buf, true, {
+            relative = 'editor',
+            width = width,
+            height = height,
+            col = (vim.o.columns - width) / 2,
+            row = (vim.o.lines - height) / 2,
+            style = 'minimal',
+            border = 'rounded',
+            title = ' Debug Help ',
+            title_pos = 'center',
+          })
+
+          vim.keymap.set('n', 'q', function()
+            vim.api.nvim_win_close(win, true)
+          end, { buffer = buf })
+        end, { buffer = true, desc = 'Show debug keybinds' })
+      end,
+    })
 
     -- Install golang specific config
     require('dap-go').setup {
