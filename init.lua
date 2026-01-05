@@ -86,6 +86,8 @@ vim.o.confirm = true
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
+-- Set keymap to open mini.files mini-files
+vim.keymap.set('n', '\\', ':lua MiniFiles.open()<CR>')
 
 -- Diagnostic keymaps
 vim.keymap.set('n', '<leader>d', vim.diagnostic.open_float, { desc = 'Show [D]iagnostic floating window' })
@@ -150,12 +152,6 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.keymap.set('n', '<leader>td', '<cmd>JavaTestDebugCurrentClass<cr>', { buffer = true, desc = '[T]est [D]ebug Current Class' })
   end,
 })
-
--- NOTE: Some terminals have colliding keymaps or are not able to send distinct keycodes
--- vim.keymap.set("n", "<C-S-h>", "<C-w>H", { desc = "Move window to the left" })
--- vim.keymap.set("n", "<C-S-l>", "<C-w>L", { desc = "Move window to the right" })
--- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
--- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -884,6 +880,7 @@ require('lazy').setup({
       --  - yinq - [Y]ank [I]nside [N]ext [Q]uote
       --  - ci'  - [C]hange [I]nside [']quote
       require('mini.ai').setup { n_lines = 500 }
+      require('mini.files').setup()
 
       -- Add/delete/replace surroundings (brackets, quotes, etc.)
       --
@@ -986,7 +983,7 @@ require('lazy').setup({
 
   require 'kickstart.plugins.debug',
   require 'kickstart.plugins.autopairs',
-  require 'kickstart.plugins.neo-tree',
+  -- require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.lazygit',
 }, {
   ui = {
