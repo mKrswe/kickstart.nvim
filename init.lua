@@ -414,6 +414,7 @@ require('lazy').setup({
       {
         'nvim-java/nvim-java',
         config = function()
+          local is_windows = vim.fn.has 'win32' == 1 or vim.fn.has 'win64' == 1
           require('java').setup {
             spring_boot_tools = {
               enable = true,
@@ -429,10 +430,13 @@ require('lazy').setup({
                 java = {
                   -- Enable automatic source download from Maven repositories
                   maven = {
-                    downloadSources = true,
+                    downloadSources = not is_windows,
                   },
                   eclipse = {
-                    downloadSources = true,
+                    downloadSources = not is_windows,
+                  },
+                  format = {
+                    enabled = false,
                   },
                 },
               },
@@ -718,6 +722,11 @@ require('lazy').setup({
       {
         '<leader>f',
         function()
+          -- Skip formatting for Java files
+          if vim.bo.filetype == 'java' then
+            vim.notify('Java formatting is disabled. Use IntelliJ to format.', vim.log.levels.INFO)
+            return
+          end
           require('conform').format { async = true, lsp_format = 'fallback' }
         end,
         mode = '',
@@ -730,7 +739,7 @@ require('lazy').setup({
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true }
+        local disable_filetypes = { c = true, cpp = true, java = true }
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else
