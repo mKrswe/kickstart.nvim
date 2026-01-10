@@ -866,19 +866,29 @@ require('lazy').setup({
   --  vim.cmd.colorscheme 'catppuccin-mocha',
   --},
   {
-    'catppuccin/nvim',
-    priority = 1000, -- Make sure to load this before all the other start plugins.
+    'rebelot/kanagawa.nvim',
+    priority = 1000,
     config = function()
-      ---@diagnostic disable-next-line: missing-fields
-      require('catppuccin').setup {
-        flavour = 'auto',
+      require('kanagawa').setup {
+        keywordStyle = { italic = true },
       }
-      -- Load the colorscheme here.
-      -- Like many other themes, this one has different styles, and you could load
-      -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
-      vim.cmd.colorscheme 'catppuccin'
+      vim.cmd.colorscheme 'kanagawa'
     end,
   },
+  -- {
+  --   'catppuccin/nvim',
+  --   priority = 1000, -- Make sure to load this before all the other start plugins.
+  --   config = function()
+  --     ---@diagnostic disable-next-line: missing-fields
+  --     require('catppuccin').setup {
+  --       flavour = 'mocha',
+  --     }
+  --     -- Load the colorscheme here.
+  --     -- Like many other themes, this one has different styles, and you could load
+  --     -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
+  --     vim.cmd.colorscheme 'catppuccin'
+  --   end,
+  -- },
 
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
