@@ -119,21 +119,64 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- Toggle between Java source and test files (like IntelliJ's Ctrl+Shift+T)
 local function toggle_java_test()
   local file = vim.fn.expand '%:p'
+  if not file or file == '' then
+    print 'No file'
+    return
+  end
+
+  -- Normalize path
+  local norm = file:gsub('\\', '/')
   local alternate
 
-  if file:match '/src/main/java/' then
-    -- Switch from source to test
-    alternate = file:gsub('/src/main/java/', '/src/test/java/'):gsub('%.java$', 'Test.java')
-  elseif file:match '/src/test/java/' then
-    -- Switch from test to source
-    alternate = file:gsub('/src/test/java/', '/src/main/java/'):gsub('Test%.java$', '.java')
+  if norm:match '/src/main/java/' then
+    -- Source -> Test
+    local test_norm = norm:gsub('/src/main/java/', '/src/test/java/')
+    local dir = test_norm:match '(.*/)'
+    local basename = test_norm:match '([^/]+)%.java$'
+    if not dir or not basename then
+      print 'Not a Java resource file'
+      return
+    end
+
+    -- Try common test suffixes
+    local candidates = {
+      dir .. basename .. 'Test.java',
+    }
+
+    for _, cand in ipairs(candidates) do
+      -- convert back to OS-specific separators if you prefer
+      if vim.fn.filereadable(cand) == 1 then
+        alternate = cand
+        break
+      end
+    end
+
+    if not alternate then
+      alternate = candidates[1]
+    end
+  elseif norm:match '/src/test/java/' then
+    -- Test -> Source
+    local src_norm = norm:gsub('/src/test/java/', '/src/main/java/')
+    local dir = src_norm:match '(.*/)'
+    local basename = src_norm:match '([^/]+)%.java$'
+    if not dir or not basename then
+      print 'Not a Java test file'
+      return
+    end
+
+    -- Remove common test suffixes
+    local bare = basename
+    bare = bare:gsub('Tests$', '')
+    bare = bare:gsub('Test$', '')
+
+    alternate = dir .. bare .. '.java'
   else
     print 'Not a Java source or test file'
     return
   end
 
   if alternate and vim.fn.filereadable(alternate) == 1 then
-    vim.cmd('edit ' .. vim.fn.fnameescape(alternate))
+    vim.cmd('edit' .. vim.fn.fnameescape(alternate))
   else
     print('Alternate file not found: ' .. (alternate or 'unknown'))
   end
@@ -353,7 +396,11 @@ require('lazy').setup({
       local builtin = require 'telescope.builtin'
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-      vim.keymap.set('n', '<leader>sf', builtin.git_files, { desc = '[S]earch Git [F]iles' })
+      vim.keymap.set('n', '<leader>sf', function()
+        require('telescope.builtin').git_files {
+          previewer = false,
+        }
+      end, { desc = '[S]earch Git [F]iles' })
       vim.keymap.set('n', '<leader>sF', builtin.find_files, { desc = '[S]earch all [F]iles' })
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
       vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
@@ -417,7 +464,7 @@ require('lazy').setup({
           local is_windows = vim.fn.has 'win32' == 1 or vim.fn.has 'win64' == 1
           require('java').setup {
             spring_boot_tools = {
-              enable = true,
+              enable = not is_windows,
             },
             java_test = {
               enable = true,
@@ -645,7 +692,7 @@ require('lazy').setup({
       --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
       local servers = {
         -- clangd = {},
-        gopls = {},
+        -- gopls = {},
         -- pyright = {},
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
