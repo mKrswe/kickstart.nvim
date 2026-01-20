@@ -128,6 +128,11 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.keymap.set('n', '<leader>tm', '<cmd>JavaTestRunCurrentMethod<cr>', { buffer = true, desc = '[T]est Current [M]ethod' })
     vim.keymap.set('n', '<leader>tr', '<cmd>JavaTestViewLastReport<cr>', { buffer = true, desc = '[T]est View Last [R]eport' })
     vim.keymap.set('n', '<leader>td', '<cmd>JavaTestDebugCurrentClass<cr>', { buffer = true, desc = '[T]est [D]ebug Current Class' })
+    -- Keymap to show all Errors in the project in a quickfix list
+    vim.keymap.set('n', '<leader>be', function()
+      vim.diagnostic.setqflist { severity = vim.diagnostic.severity.ERROR }
+      vim.cmd 'copen'
+    end, { desc = '[B]uild [E]rrors' })
   end,
 })
 
@@ -268,7 +273,22 @@ require('lazy').setup({
       {
         'nvim-java/nvim-java',
         config = function()
-          local is_windows = vim.fn.has 'win32' == 1 or vim.fn.has 'win64' == 1
+          -- local is_windows = vim.fn.has 'win32' == 1 or vim.fn.has 'win64' == 1
+          local is_wsl = vim.fn.has 'wsl' == 1
+          local jdtls_configuration = nil
+
+          if is_wsl then
+            jdtls_configuration = {
+              runtimes = {
+                {
+                  name = 'JavaSE-21',
+                  path = '/usr/lib/jvm/java-21-openjdk-amd64',
+                  default = true,
+                },
+              },
+            }
+          end
+
           require('java').setup {
             jdk = {
               auto_install = false,
@@ -284,7 +304,7 @@ require('lazy').setup({
               '.git',
             },
             spring_boot_tools = {
-              enable = not is_windows,
+              enable = false,
             },
             java_test = {
               enable = true,
@@ -293,32 +313,31 @@ require('lazy').setup({
               enable = true,
             },
             jdtls = {
-              -- TODO: not valid on mac
-              java_home = '/usr/lib/jvm/java-21-openjdk-amd64',
+              java = {
+                vmargs = {
+                  '-Xms1G',
+                  '-Xmx4G',
+                  '-XX:+UseG1GC',
+                  '-XX:+UseStringDeduplication',
+                },
+              },
+              -- TODO: not valid on mac or windows
+              java_home = is_wsl and '/usr/lib/jvm/java-21-openjdk-amd64' or nil,
               settings = {
                 java = {
                   -- Enable automatic source download from Maven repositories
                   maven = {
-                    downloadSources = not is_windows,
-                    -- WSL Maven settings.xml für Hybrid-Setup
-                    userSettings = vim.fn.expand '~/.m2/settings.xml',
+                    downloadSources = false,
+                    userSettings = is_wsl and vim.fn.expand '~/.m2/settings.xml' or nil,
                   },
                   eclipse = {
-                    downloadSources = not is_windows,
+                    downloadSources = false,
                   },
                   format = {
                     enabled = false,
                   },
                   -- Java Runtime Konfiguration
-                  configuration = {
-                    runtimes = {
-                      {
-                        name = 'JavaSE-21',
-                        path = '/usr/lib/jvm/java-21-openjdk-amd64',
-                        default = true,
-                      },
-                    },
-                  },
+                  configuration = jdtls_configuration,
                 },
               },
             },
@@ -776,7 +795,7 @@ require('lazy').setup({
     },
   },
 
-  require 'kickstart.plugins.debug',
+  -- require 'kickstart.plugins.debug',
   require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
   require 'kickstart.plugins.lazygit',
