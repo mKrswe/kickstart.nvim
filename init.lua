@@ -656,15 +656,23 @@ require('lazy').setup({
   --  vim.cmd.colorscheme 'catppuccin-mocha',
   --},
   {
-    'rebelot/kanagawa.nvim',
+    'rose-pine/neovim',
+    name = 'rose-pine',
     priority = 1000,
     config = function()
-      require('kanagawa').setup {
-        keywordStyle = { italic = true },
-      }
-      vim.cmd.colorscheme 'kanagawa'
+      vim.cmd.colorscheme 'rose-pine'
     end,
   },
+  -- {
+  --   'rebelot/kanagawa.nvim',
+  --   priority = 1000,
+  --   config = function()
+  --     require('kanagawa').setup {
+  --       keywordStyle = { italic = true },
+  --     }
+  --     vim.cmd.colorscheme 'kanagawa'
+  --   end,
+  -- },
   -- {
   --   'catppuccin/nvim',
   --   priority = 1000, -- Make sure to load this before all the other start plugins.
