@@ -206,6 +206,24 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.cmd [[retab]]
   end,
 })
+
+-- Manual LSP refresh keybind (use when completion stops working)
+vim.keymap.set('n', '<leader>lr', function()
+  -- Detach and re-attach all LSP clients to current buffer
+  local bufnr = vim.api.nvim_get_current_buf()
+  for _, client in ipairs(vim.lsp.get_clients { bufnr = bufnr }) do
+    vim.lsp.buf_detach_client(bufnr, client.id)
+    vim.lsp.buf_attach_client(bufnr, client.id)
+  end
+  print 'LSP clients re-attached'
+end, { desc = '[L]SP [R]efresh' })
+
+-- Insert mode: Ctrl+l to force refresh completion
+vim.keymap.set('i', '<C-l>', function()
+  local cmp = require 'cmp'
+  cmp.close()
+  vim.schedule(function() cmp.complete() end)
+end, { desc = 'Refresh completion' })
 -- Highlight when yanking (copying) text
 vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
@@ -445,12 +463,8 @@ require('lazy').setup({
 
       -- Useful status updates for LSP.
       { 'j-hui/fidget.nvim', opts = {} },
-      -- Allows extra capabilities provided by blink.cmp
-      {
-        'saghen/blink.cmp',
-        -- use a release tag to download pre-built binaries
-        version = '1.*',
-      },
+      -- Allows extra capabilities provided by nvim-cmp
+      'hrsh7th/cmp-nvim-lsp',
     },
     config = function()
       vim.api.nvim_create_autocmd('LspAttach', {
@@ -517,9 +531,9 @@ require('lazy').setup({
 
       -- LSP servers and clients are able to communicate to each other what features they support.
       --  By default, Neovim doesn't support everything that is in the LSP specification.
-      --  When you add blink.cmp, luasnip, etc. Neovim now has *more* capabilities.
-      --  So, we create new capabilities with blink.cmp, and then broadcast that to the servers.
-      local capabilities = require('blink.cmp').get_lsp_capabilities()
+      --  When you add nvim-cmp, luasnip, etc. Neovim now has *more* capabilities.
+      --  So, we create new capabilities with cmp-nvim-lsp, and then broadcast that to the servers.
+      local capabilities = require('cmp_nvim_lsp').default_capabilities()
       local servers = {
         -- clangd = {},
         -- gopls = {},
@@ -610,25 +624,18 @@ require('lazy').setup({
   },
 
   { -- Autocompletion
-    'saghen/blink.cmp',
-    event = 'VimEnter',
-    version = '1.*',
+    'hrsh7th/nvim-cmp',
+    event = 'InsertEnter',
     dependencies = {
       -- Snippet Engine
       {
         'L3MON4D3/LuaSnip',
         version = '2.*',
         build = (function()
-          -- Build Step is needed for regex support in snippets.
-          -- This step is not supported in many windows environments.
-          -- Remove the below condition to re-enable on windows.
           if vim.fn.has 'win32' == 1 or vim.fn.executable 'make' == 0 then return end
           return 'make install_jsregexp'
         end)(),
         dependencies = {
-          -- `friendly-snippets` contains a variety of premade snippets.
-          --    See the README about individual language/framework/plugin snippets:
-          --    https://github.com/rafamadriz/friendly-snippets
           {
             'rafamadriz/friendly-snippets',
             config = function() require('luasnip.loaders.from_vscode').lazy_load() end,
@@ -636,69 +643,71 @@ require('lazy').setup({
         },
         opts = {},
       },
+      'saadparwaiz1/cmp_luasnip',
+      'hrsh7th/cmp-nvim-lsp',
+      'hrsh7th/cmp-path',
       'folke/lazydev.nvim',
     },
-    --- @module 'blink.cmp'
-    --- @type blink.cmp.Config
-    opts = {
-      keymap = {
-        -- 'default' (recommended) for mappings similar to built-in completions
-        --   <c-y> to accept ([y]es) the completion.
-        --    This will auto-import if your LSP supports it.
-        --    This will expand snippets if the LSP sent a snippet.
-        -- 'super-tab' for tab to accept
-        -- 'enter' for enter to accept
-        -- 'none' for no mappings
-        --
-        -- For an understanding of why the 'default' preset is recommended,
-        -- you will need to read `:help ins-completion`
-        --
-        -- No, but seriously. Please read `:help ins-completion`, it is really good!
-        --
-        -- All presets have the following mappings:
-        -- <tab>/<s-tab>: move to right/left of your snippet expansion
-        -- <c-space>: Open menu or open docs if already open
-        -- <c-n>/<c-p> or <up>/<down>: Select next/previous item
-        -- <c-e>: Hide menu
-        -- <c-k>: Toggle signature help
-        --
-        -- See :h blink-cmp-config-keymap for defining your own keymap
-        preset = 'super-tab',
+    config = function()
+      local cmp = require 'cmp'
+      local luasnip = require 'luasnip'
+      luasnip.config.setup {}
 
-        -- For more advanced Luasnip keymaps (e.g. selecting choice nodes, expansion) see:
-        --    https://github.com/L3MON4D3/LuaSnip?tab=readme-ov-file#keymaps
-      },
+      cmp.setup {
+        snippet = {
+          expand = function(args) luasnip.lsp_expand(args.body) end,
+        },
+        completion = { completeopt = 'menu,menuone,noinsert' },
 
-      appearance = {
-        -- 'mono' (default) for 'Nerd Font Mono' or 'normal' for 'Nerd Font'
-        -- Adjusts spacing to ensure icons are aligned
-        nerd_font_variant = 'mono',
-      },
+        -- Super-tab style keymaps
+        mapping = cmp.mapping.preset.insert {
+          -- Select next/previous item
+          ['<C-n>'] = cmp.mapping.select_next_item(),
+          ['<C-p>'] = cmp.mapping.select_prev_item(),
 
-      completion = {
-        -- By default, you may press `<c-space>` to show the documentation.
-        -- Optionally, set `auto_show = true` to show the documentation after a delay.
-        documentation = { auto_show = true, auto_show_delay_ms = 500 },
-      },
+          -- Scroll docs
+          ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+          ['<C-f>'] = cmp.mapping.scroll_docs(4),
 
-      sources = {
-        default = { 'lsp', 'path', 'snippets' },
-      },
+          -- Accept completion (Tab to accept, like super-tab)
+          ['<Tab>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.confirm { select = true }
+            elseif luasnip.expand_or_locally_jumpable() then
+              luasnip.expand_or_jump()
+            else
+              fallback()
+            end
+          end, { 'i', 's' }),
 
-      snippets = { preset = 'luasnip' },
+          ['<S-Tab>'] = cmp.mapping(function(fallback)
+            if luasnip.locally_jumpable(-1) then
+              luasnip.jump(-1)
+            else
+              fallback()
+            end
+          end, { 'i', 's' }),
 
-      -- Blink.cmp includes an optional, recommended rust fuzzy matcher,
-      -- which automatically downloads a prebuilt binary when enabled.
-      --
-      -- By default, we use the Lua implementation instead, but you may enable
-      -- the rust implementation via `'prefer_rust_with_warning'`
-      --
-      -- See :h blink-cmp-config-fuzzy for more information
-      fuzzy = { implementation = 'lua' },
+          -- Manually trigger completion
+          ['<C-Space>'] = cmp.mapping.complete {},
 
-      -- Shows a signature help window while you type arguments for a function
-      signature = { enabled = true },
-    },
+          -- Close completion menu
+          ['<C-e>'] = cmp.mapping.abort(),
+        },
+
+        sources = {
+          { name = 'lazydev', group_index = 0 },
+          { name = 'nvim_lsp' },
+          { name = 'luasnip' },
+          { name = 'path' },
+        },
+
+        window = {
+          completion = cmp.config.window.bordered(),
+          documentation = cmp.config.window.bordered(),
+        },
+      }
+    end,
   },
 
   --{
