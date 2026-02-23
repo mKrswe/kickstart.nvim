@@ -4,7 +4,9 @@ vim.g.have_nerd_font = true
 vim.o.number = true
 vim.o.mouse = 'a'
 vim.o.showmode = false
-vim.schedule(function() vim.o.clipboard = 'unnamedplus' end)
+vim.schedule(function()
+  -- vim.o.clipboard = 'unnamedplus'
+end)
 if vim.fn.has 'wsl' == 1 then
   vim.g.clipboard = {
     name = 'win32yank',
@@ -19,13 +21,20 @@ if vim.fn.has 'wsl' == 1 then
     cache_enabled = 0,
   }
 end
+
+-- Windows Clipboard Keybinds (WSL)
+vim.keymap.set({ 'n', 'v' }, '<leader>y', '"+y', { desc = '[Y]ank to Windows clipboard' })
+vim.keymap.set('n', '<leader>Y', '"+Y', { desc = '[Y]ank line to Windows clipboard' })
+vim.keymap.set({ 'n', 'v' }, '<leader>p', '"+p', { desc = '[P]aste from Windows clipboard' })
+vim.keymap.set({ 'n', 'v' }, '<leader>P', '"+P', { desc = '[P]aste from Windows clipboard (before)' })
+
 vim.o.breakindent = true
 vim.o.undofile = true
 vim.o.ignorecase = true
 vim.o.smartcase = true
 vim.o.signcolumn = 'yes'
 -- Decrease update time
-vim.o.updatetime = 2000
+vim.o.updatetime = 500
 -- Decrease mapped sequence wait time
 vim.o.timeoutlen = 300
 -- Configure how new splits should be opened
@@ -83,7 +92,9 @@ vim.o.winborder = 'rounded'
 local orig_open = vim.lsp.util.open_floating_preview
 function vim.lsp.util.open_floating_preview(contents, syntax, opts, ...)
   opts = opts or {}
-  if opts.border == nil then opts.border = 'rounded' end
+  if opts.border == nil then
+    opts.border = 'rounded'
+  end
   return orig_open(contents, syntax, opts, ...)
 end
 
@@ -122,7 +133,9 @@ local function toggle_java_test()
       end
     end
 
-    if not alternate then alternate = candidates[1] end
+    if not alternate then
+      alternate = candidates[1]
+    end
   elseif norm:match '/src/test/java/' then
     -- Test -> Source
     local src_norm = norm:gsub('/src/test/java/', '/src/main/java/')
@@ -192,7 +205,9 @@ vim.api.nvim_create_autocmd('FileType', {
       -- Nur Warnungen übernehmen
       local qf_items = {}
       for _, item in ipairs(filtered) do
-        if item.severity == vim.diagnostic.severity.WARN then table.insert(qf_items, item) end
+        if item.severity == vim.diagnostic.severity.WARN then
+          table.insert(qf_items, item)
+        end
       end
 
       vim.fn.setqflist({}, ' ', {
@@ -208,7 +223,9 @@ vim.api.nvim_create_autocmd('FileType', {
 -- Deaktiviere Swap für jdt://-Buffer
 vim.api.nvim_create_autocmd('BufReadCmd', {
   pattern = 'jdt://*',
-  callback = function() vim.opt_local.swapfile = false end,
+  callback = function()
+    vim.opt_local.swapfile = false
+  end,
 })
 --  See `:help lua-guide-autocommands`
 vim.api.nvim_create_autocmd('FileType', {
@@ -236,13 +253,17 @@ end, { desc = '[L]SP [R]efresh' })
 vim.keymap.set('i', '<C-l>', function()
   local cmp = require 'cmp'
   cmp.close()
-  vim.schedule(function() cmp.complete() end)
+  vim.schedule(function()
+    cmp.complete()
+  end)
 end, { desc = 'Refresh completion' })
 -- Highlight when yanking (copying) text
 vim.api.nvim_create_autocmd('TextYankPost', {
   desc = 'Highlight when yanking (copying) text',
   group = vim.api.nvim_create_augroup('kickstart-highlight-yank', { clear = true }),
-  callback = function() vim.hl.on_yank() end,
+  callback = function()
+    vim.hl.on_yank()
+  end,
 })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
@@ -250,7 +271,9 @@ local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
 if not (vim.uv or vim.loop).fs_stat(lazypath) then
   local lazyrepo = 'https://github.com/folke/lazy.nvim.git'
   local out = vim.fn.system { 'git', 'clone', '--filter=blob:none', '--branch=stable', lazyrepo, lazypath }
-  if vim.v.shell_error ~= 0 then error('Error cloning lazy.nvim:\n' .. out) end
+  if vim.v.shell_error ~= 0 then
+    error('Error cloning lazy.nvim:\n' .. out)
+  end
 end
 
 ---@type vim.Option
@@ -280,7 +303,9 @@ require('lazy').setup({
       { -- If encountering errors, see telescope-fzf-native README for installation instructions
         'nvim-telescope/telescope-fzf-native.nvim',
         build = 'make',
-        cond = function() return vim.fn.executable 'make' == 1 end,
+        cond = function()
+          return vim.fn.executable 'make' == 1
+        end,
       },
       { 'nvim-telescope/telescope-ui-select.nvim' },
       -- Useful for getting pretty icons, but requires a Nerd Font.
@@ -288,7 +313,9 @@ require('lazy').setup({
     },
     config = function()
       require('telescope').setup {
-        file_ignore_pattern = { 'target/.*' },
+        defaults = {
+          file_ignore_pattern = { 'target/.*', '%.class' },
+        },
         extensions = {
           ['ui-select'] = {
             require('telescope.themes').get_dropdown(),
@@ -301,16 +328,11 @@ require('lazy').setup({
       local builtin = require 'telescope.builtin'
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
       vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
-      vim.keymap.set(
-        'n',
-        '<leader>sf',
-        function()
-          require('telescope.builtin').git_files {
-            previewer = false,
-          }
-        end,
-        { desc = '[S]earch Git [F]iles' }
-      )
+      vim.keymap.set('n', '<leader>sf', function()
+        require('telescope.builtin').git_files {
+          previewer = false,
+        }
+      end, { desc = '[S]earch Git [F]iles' })
       vim.keymap.set('n', '<leader>sF', builtin.find_files, { desc = '[S]earch all [F]iles' })
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
       vim.keymap.set({ 'n', 'v' }, '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
@@ -364,19 +386,16 @@ require('lazy').setup({
         })
       end, { desc = '[/] Fuzzily search in current buffer' })
       -- It's also possible to pass additional configuration options.
-      vim.keymap.set(
-        'n',
-        '<leader>s/',
-        function()
-          builtin.live_grep {
-            grep_open_files = true,
-            prompt_title = 'Live Grep in Open Files',
-          }
-        end,
-        { desc = '[S]earch [/] in Open Files' }
-      )
+      vim.keymap.set('n', '<leader>s/', function()
+        builtin.live_grep {
+          grep_open_files = true,
+          prompt_title = 'Live Grep in Open Files',
+        }
+      end, { desc = '[S]earch [/] in Open Files' })
       -- Shortcut for searching your Neovim configuration files
-      vim.keymap.set('n', '<leader>sn', function() builtin.find_files { cwd = vim.fn.stdpath 'config' } end, { desc = '[S]earch [N]eovim files' })
+      vim.keymap.set('n', '<leader>sn', function()
+        builtin.find_files { cwd = vim.fn.stdpath 'config' }
+      end, { desc = '[S]earch [N]eovim files' })
     end,
   },
   -- LSP Plugins
@@ -406,7 +425,7 @@ require('lazy').setup({
               '.git',
             },
             spring_boot_tools = {
-              enable = false,
+              enable = true,
             },
             java_test = {
               enable = true,
@@ -416,20 +435,25 @@ require('lazy').setup({
             },
             jdtls = {
               java = {
+                fileWatcher = {
+                  enabled = false,
+                },
                 vmargs = {
-                  '-Xms512M',
-                  '-Xmx2G',
+                  '-Xms1G',
+                  '-Xmx4G',
                   '-XX:+UseG1GC',
                   '-XX:+UseStringDeduplication',
-                  '-XX:MaxMetaspaceSize=512M',
-                  '-XX:ReservedCodeCacheSize=256M',
+                  '-XX:MaxMetaspaceSize=1G',
+                  '-XX:ReservedCodeCacheSize=512M',
+                  '-XX:+TieredCompilation',
+                  '-XX:+OptimizeStringConcat',
                 },
               },
               settings = {
                 java = {
                   -- Enable automatic source download from Maven repositories
                   maven = {
-                    downloadSources = false,
+                    downloadSources = true,
                   },
                   eclipse = {
                     downloadSources = false,
@@ -465,9 +489,13 @@ require('lazy').setup({
 
             -- Override on_close to show report when tests complete
             report.on_close = function(self)
-              if original_on_close then original_on_close(self) end
+              if original_on_close then
+                original_on_close(self)
+              end
               -- Show report after tests finish
-              vim.schedule(function() self:show_report() end)
+              vim.schedule(function()
+                self:show_report()
+              end)
             end
 
             return report
@@ -496,22 +524,6 @@ require('lazy').setup({
           -- The following two autocommands are used to highlight references of the
           -- word under your cursor when your cursor rests there for a little while.
           local client = vim.lsp.get_client_by_id(event.data.client_id)
-          if client and client.name == 'jdtls' then client.server_capabilities.semanticTokensProvider = nil end
-
-          -- Semantic Tokens für Java komplett deaktivieren (nur Treesitter-Highlighting nutzen)
-          vim.api.nvim_create_autocmd('LspAttach', {
-            group = vim.api.nvim_create_augroup('java-disable-semantic-tokens', { clear = true }),
-            callback = function(event)
-              local client = vim.lsp.get_client_by_id(event.data.client_id)
-              if not client then return end
-
-              -- Nur Java
-              if vim.bo[event.buf].filetype ~= 'java' then return end
-
-              -- Semantic Tokens für diesen Client abklemmen
-              if client.server_capabilities.semanticTokensProvider then client.server_capabilities.semanticTokensProvider = nil end
-            end,
-          })
 
           if client and client.name ~= 'jdlts' and client:supports_method('textDocument/documentHighlight', event.buf) then
             local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight', { clear = false })
@@ -538,7 +550,9 @@ require('lazy').setup({
           -- The following code creates a keymap to toggle inlay hints in your
           -- code, if the language server you are using supports them
           if client and client:supports_method(vim.lsp.protocol.Methods.textDocument_inlayHint, event.buf) then
-            map('<leader>th', function() vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf }) end, '[T]oggle Inlay [H]ints')
+            map('<leader>th', function()
+              vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled { bufnr = event.buf })
+            end, '[T]oggle Inlay [H]ints')
           end
         end,
       })
@@ -572,7 +586,9 @@ require('lazy').setup({
         on_init = function(client)
           if client.workspace_folders then
             local path = client.workspace_folders[1].name
-            if path ~= vim.fn.stdpath 'config' and (vim.uv.fs_stat(path .. '/.luarc.json') or vim.uv.fs_stat(path .. '/.luarc.jsonc')) then return end
+            if path ~= vim.fn.stdpath 'config' and (vim.uv.fs_stat(path .. '/.luarc.json') or vim.uv.fs_stat(path .. '/.luarc.jsonc')) then
+              return
+            end
           end
 
           client.config.settings.Lua = vim.tbl_deep_extend('force', client.config.settings.Lua, {
@@ -646,13 +662,17 @@ require('lazy').setup({
         'L3MON4D3/LuaSnip',
         version = '2.*',
         build = (function()
-          if vim.fn.has 'win32' == 1 or vim.fn.executable 'make' == 0 then return end
+          if vim.fn.has 'win32' == 1 or vim.fn.executable 'make' == 0 then
+            return
+          end
           return 'make install_jsregexp'
         end)(),
         dependencies = {
           {
             'rafamadriz/friendly-snippets',
-            config = function() require('luasnip.loaders.from_vscode').lazy_load() end,
+            config = function()
+              require('luasnip.loaders.from_vscode').lazy_load()
+            end,
           },
         },
         opts = {},
@@ -669,7 +689,9 @@ require('lazy').setup({
 
       cmp.setup {
         snippet = {
-          expand = function(args) luasnip.lsp_expand(args.body) end,
+          expand = function(args)
+            luasnip.lsp_expand(args.body)
+          end,
         },
         completion = { completeopt = 'menu,menuone,noinsert' },
 
@@ -809,7 +831,9 @@ require('lazy').setup({
       -- default behavior. For example, here we set the section for
       -- cursor location to LINE:COLUMN
       ---@diagnostic disable-next-line: duplicate-set-field
-      statusline.section_location = function() return '%2l:%-2v' end
+      statusline.section_location = function()
+        return '%2l:%-2v'
+      end
 
       -- Show keybindings helper (replaces which-key)
       local miniclue = require 'mini.clue'
