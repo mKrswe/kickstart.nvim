@@ -21,13 +21,11 @@ if vim.fn.has 'wsl' == 1 then
     cache_enabled = 0,
   }
 end
-
 -- Windows Clipboard Keybinds (WSL)
 vim.keymap.set({ 'n', 'v' }, '<leader>y', '"+y', { desc = '[Y]ank to Windows clipboard' })
 vim.keymap.set('n', '<leader>Y', '"+Y', { desc = '[Y]ank line to Windows clipboard' })
 vim.keymap.set({ 'n', 'v' }, '<leader>p', '"+p', { desc = '[P]aste from Windows clipboard' })
 vim.keymap.set({ 'n', 'v' }, '<leader>P', '"+P', { desc = '[P]aste from Windows clipboard (before)' })
-
 vim.o.breakindent = true
 vim.o.undofile = true
 vim.o.ignorecase = true
@@ -231,6 +229,12 @@ vim.api.nvim_create_autocmd('BufReadCmd', {
 vim.api.nvim_create_autocmd('FileType', {
   pattern = 'java',
   callback = function()
+    -- Nicht auf dekompilierten Library-Klassen ausführen
+    local bufname = vim.api.nvim_buf_get_name(0)
+    if vim.startswith(bufname, 'jdt://') then
+      return
+    end
+
     vim.opt_local.expandtab = true
     vim.opt_local.shiftwidth = 4
     vim.opt_local.tabstop = 4
@@ -314,7 +318,7 @@ require('lazy').setup({
     config = function()
       require('telescope').setup {
         defaults = {
-          file_ignore_pattern = { 'target/.*', '%.class' },
+          file_ignore_patterns = { 'target/.*', '%.class' },
         },
         extensions = {
           ['ui-select'] = {
@@ -352,14 +356,19 @@ require('lazy').setup({
           -- Find references for the word under your cursor.
           vim.keymap.set('n', 'grr', builtin.lsp_references, { buffer = buf, desc = '[G]oto [R]eferences' })
 
+          -- maybe fix??
+          vim.keymap.set('n', 'gi', vim.lsp.buf.implementation, { buffer = buf, desc = '[G]oto [I]mplementation' })
+          vim.keymap.set('n', 'gd', vim.lsp.buf.definition, { buffer = buf, desc = '[G]oto [D]efinition' })
+          -- maybe fix ende !!
+
           -- Jump to the implementation of the word under your cursor.
           -- Useful when your language has ways of declaring types without an actual implementation.
-          vim.keymap.set('n', 'gi', builtin.lsp_implementations, { buffer = buf, desc = '[G]oto [I]mplementation' })
+          -- vim.keymap.set('n', 'gi', builtin.lsp_implementations, { buffer = buf, desc = '[G]oto [I]mplementation' })
 
           -- Jump to the definition of the word under your cursor.
           -- This is where a variable was first declared, or where a function is defined, etc.
           -- To jump back, press <C-t>.
-          vim.keymap.set('n', 'grd', builtin.lsp_definitions, { buffer = buf, desc = '[G]oto [D]efinition' })
+          -- vim.keymap.set('n', 'gd', builtin.lsp_definitions, { buffer = buf, desc = '[G]oto [D]efinition' })
 
           -- Fuzzy find all the symbols in your current document.
           -- Symbols are things like variables, functions, types, etc.
@@ -398,6 +407,27 @@ require('lazy').setup({
       end, { desc = '[S]earch [N]eovim files' })
     end,
   },
+  -- LazyGit plugin
+  {
+    'kdheepak/lazygit.nvim',
+    lazy = true,
+    cmd = {
+      'LazyGit',
+      'LazyGitConfig',
+      'LazyGitCurrentFile',
+      'LazyGitFilter',
+      'LazyGitFilterCurrentFile',
+    },
+    -- optional for floating window border decoration
+    dependencies = {
+      'nvim-lua/plenary.nvim',
+    },
+    -- setting the keybinding for LazyGit with 'keys' is recommended in
+    -- order to load the plugin when the command is run for the first time
+    keys = {
+      { '<leader>lg', '<cmd>LazyGit<cr>', desc = 'LazyGit' },
+    },
+  },
   -- LSP Plugins
   {
     -- Main LSP Configuration
@@ -435,9 +465,6 @@ require('lazy').setup({
             },
             jdtls = {
               java = {
-                fileWatcher = {
-                  enabled = false,
-                },
                 vmargs = {
                   '-Xms1G',
                   '-Xmx4G',
@@ -451,15 +478,15 @@ require('lazy').setup({
               },
               settings = {
                 java = {
+                  fileWatcher = {
+                    enabled = false,
+                  },
                   -- Enable automatic source download from Maven repositories
                   maven = {
                     downloadSources = true,
                   },
                   eclipse = {
                     downloadSources = false,
-                  },
-                  format = {
-                    enabled = false,
                   },
                   autobuild = {
                     enabled = false,
@@ -480,6 +507,23 @@ require('lazy').setup({
             },
           }
           vim.lsp.enable 'jdtls'
+
+          -- Handler für dekompilierte Klassen (jdt:// URIs)
+          vim.lsp.handlers['java/classFileContents'] = function(err, result, ctx)
+            assert(not err, vim.inspect(err))
+            if not result then
+              return
+            end
+
+            local buf = vim.api.nvim_create_buf(false, true)
+            local normalized = string.gsub(result, '\r\n', '\n')
+            local lines = vim.split(normalized, '\n', { plain = true })
+            vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+            vim.bo[buf].modifiable = false
+            vim.bo[buf].filetype = 'java'
+            vim.api.nvim_win_set_buf(0, buf)
+          end
+
           -- Hook into test completion to auto-show report
           local java_test = require 'java-test'
           local original_get_report = java_test.get_report
@@ -525,7 +569,7 @@ require('lazy').setup({
           -- word under your cursor when your cursor rests there for a little while.
           local client = vim.lsp.get_client_by_id(event.data.client_id)
 
-          if client and client.name ~= 'jdlts' and client:supports_method('textDocument/documentHighlight', event.buf) then
+          if client and client:supports_method('textDocument/documentHighlight', event.buf) then
             local highlight_augroup = vim.api.nvim_create_augroup('kickstart-lsp-highlight', { clear = false })
             vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
               buffer = event.buf,
@@ -620,12 +664,7 @@ require('lazy').setup({
       {
         '<leader>f',
         function()
-          -- Skip formatting for Java files
-          if vim.bo.filetype == 'java' then
-            vim.notify('Java formatting is disabled. Use IntelliJ to format.', vim.log.levels.INFO)
-            return
-          end
-          require('conform').format { async = true, lsp_format = 'fallback' }
+          require('conform').format { async = true, lsp_format = 'never' }
         end,
         mode = '',
         desc = '[F]ormat buffer',
@@ -637,18 +676,23 @@ require('lazy').setup({
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true, java = true }
+        local disable_filetypes = { c = true, cpp = true }
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else
           return {
             timeout_ms = 500,
-            lsp_format = 'fallback',
+            lsp_format = 'never',
           }
         end
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+      },
+      formatters = {
+        ['google-java-format'] = {
+          args = { '--aosp', '-' },
+        },
       },
     },
   },
@@ -885,6 +929,8 @@ require('lazy').setup({
           { mode = 'n', keys = '<Leader>h', desc = '+Git [H]unk' },
           { mode = 'v', keys = '<Leader>h', desc = '+Git [H]unk' },
           { mode = 'n', keys = '<Leader>l', desc = '+[L]azy' },
+          { mode = 'n', keys = '<Leader>j', desc = '+[J]ava' },
+          { mode = 'n', keys = '<Leader>b', desc = '+[B]uild' },
         },
       }
 
