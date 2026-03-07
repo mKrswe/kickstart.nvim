@@ -54,6 +54,8 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 vim.keymap.set('n', '\\', ':lua MiniFiles.open()<CR>')
 vim.keymap.set('n', '<leader>d', vim.diagnostic.open_float, { desc = 'Show [D]iagnostic floating window' })
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
+vim.keymap.set('n', '<leader>b', function() require('dap').toggle_breakpoint() end, { desc = 'Debug: Toggle [B]reakpoint' })
+vim.keymap.set('n', '<leader>B', function() require('dap').set_breakpoint(vim.fn.input 'Breakpoint condition: ') end, { desc = 'Debug: Set [B]reakpoint condition' })
 
 -- Diagnostic Config & Keymaps
 -- See :help vim.diagnostic.Opts
@@ -524,25 +526,17 @@ require('lazy').setup({
             vim.api.nvim_win_set_buf(0, buf)
           end
 
-          -- Hook into test completion to auto-show report
-          local java_test = require 'java-test'
-          local original_get_report = java_test.get_report
-          java_test.get_report = function()
-            local report = original_get_report()
-            local original_on_close = report.on_close
-
-            -- Override on_close to show report when tests complete
-            report.on_close = function(self)
-              if original_on_close then
-                original_on_close(self)
-              end
-              -- Show report after tests finish
+          -- Auto-show test report when DAP session ends
+          local dap = require 'dap'
+          dap.listeners.after.event_terminated['java-test-report'] = function()
+            local java_test = require 'java-test'
+            if java_test.last_report then
               vim.schedule(function()
-                self:show_report()
+                pcall(function()
+                  java_test.last_report:show_report()
+                end)
               end)
             end
-
-            return report
           end
         end,
       },
@@ -852,6 +846,28 @@ require('lazy').setup({
     opts = {
       notifier = {},
     },
+    config = function(_, opts)
+      require('snacks').setup(opts)
+
+      -- LSP Progress → snacks.notifier (replaces fidget.nvim)
+      local spinner = { '⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏' }
+      vim.api.nvim_create_autocmd('LspProgress', {
+        callback = function(ev)
+          local client = vim.lsp.get_client_by_id(ev.data.client_id)
+          if not client then
+            return
+          end
+          vim.notify(vim.lsp.status(), 'info', {
+            id = 'lsp_progress',
+            title = client.name,
+            opts = function(notif)
+              notif.icon = ev.data.params.value.kind == 'end' and ' '
+                or spinner[math.floor(vim.uv.hrtime() / (1e6 * 80)) % #spinner + 1]
+            end,
+          })
+        end,
+      })
+    end,
   },
 
   { -- Collection of various small independent plugins/modules
@@ -965,7 +981,30 @@ require('lazy').setup({
     end,
   },
 
-  -- require 'kickstart.plugins.debug',
+  { -- Debug UI (watches, breakpoints, scopes, threads, console)
+    'igorlfs/nvim-dap-view',
+    dependencies = { 'mfussenegger/nvim-dap' },
+    keys = {
+      { '<leader>dv', '<cmd>DapViewToggle<cr>', desc = '[D]ebug [V]iew toggle' },
+    },
+    opts = {},
+    config = function(_, opts)
+      require('dap-view').setup(opts)
+
+      -- Auto-open when breakpoint is hit, auto-close when session ends
+      local dap = require 'dap'
+      dap.listeners.after.event_stopped['dap-view'] = function()
+        require('dap-view').open()
+      end
+      dap.listeners.before.event_terminated['dap-view'] = function()
+        require('dap-view').close()
+      end
+      dap.listeners.before.event_exited['dap-view'] = function()
+        require('dap-view').close()
+      end
+    end,
+  },
+
   require 'plugins.autopairs',
 }, {
   ui = {
