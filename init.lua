@@ -610,6 +610,7 @@ require('lazy').setup({
       vim.list_extend(ensure_installed, {
         'lua_ls',
         'stylua',
+        'prettier',
       })
 
       require('mason-tool-installer').setup { ensure_installed = ensure_installed }
@@ -682,6 +683,13 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        javascript = { 'prettier' },
+        typescript = { 'prettier' },
+        javascriptreact = { 'prettier' },
+        typescriptreact = { 'prettier' },
+        json = { 'prettier' },
+        css = { 'prettier' },
+        html = { 'prettier' },
       },
       formatters = {
         ['google-java-format'] = {
