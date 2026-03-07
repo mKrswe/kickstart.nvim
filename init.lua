@@ -548,7 +548,7 @@ require('lazy').setup({
       },
 
       -- Useful status updates for LSP.
-      { 'j-hui/fidget.nvim', opts = {} },
+      -- replaced by snacks.notifier
       -- Allows extra capabilities provided by nvim-cmp
       'hrsh7th/cmp-nvim-lsp',
     },
@@ -844,6 +844,15 @@ require('lazy').setup({
 
   -- Highlight todo, notes, etc in comments
   { 'folke/todo-comments.nvim', event = 'VimEnter', dependencies = { 'nvim-lua/plenary.nvim' }, opts = { signs = false } },
+
+  { -- Snacks.nvim: notifier (replaces fidget.nvim)
+    'folke/snacks.nvim',
+    priority = 1000,
+    lazy = false,
+    opts = {
+      notifier = {},
+    },
+  },
 
   { -- Collection of various small independent plugins/modules
     'nvim-mini/mini.nvim',
