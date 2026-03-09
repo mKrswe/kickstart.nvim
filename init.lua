@@ -327,6 +327,7 @@ require('lazy').setup({
         function()
           require('telescope.builtin').git_files {
             previewer = false,
+            path_display = { 'filename_first', 'truncate' },
           }
         end,
         { desc = '[S]earch Git [F]iles' }
