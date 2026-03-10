@@ -61,6 +61,11 @@ vim.keymap.set(
   function() require('dap').set_breakpoint(vim.fn.input 'Breakpoint condition: ') end,
   { desc = 'Debug: Set [B]reakpoint condition' }
 )
+vim.keymap.set('n', '<leader>bc', function() require('dap').continue() end, { desc = 'Debug: [C]ontinue' })
+vim.keymap.set('n', '<leader>bs', function() require('dap').step_over() end, { desc = 'Debug: [S]tep Over' })
+vim.keymap.set('n', '<leader>bi', function() require('dap').step_into() end, { desc = 'Debug: Step [I]nto' })
+vim.keymap.set('n', '<leader>bo', function() require('dap').step_out() end, { desc = 'Debug: Step [O]ut' })
+vim.keymap.set('n', '<leader>bt', function() require('dap').terminate() end, { desc = 'Debug: [T]erminate' })
 
 -- Diagnostic Config & Keymaps
 -- See :help vim.diagnostic.Opts
@@ -962,6 +967,7 @@ require('lazy').setup({
 
   { -- Debug UI (watches, breakpoints, scopes, threads, console)
     'igorlfs/nvim-dap-view',
+    lazy = false,
     dependencies = { 'mfussenegger/nvim-dap' },
     keys = {
       { '<leader>vd', '<cmd>DapViewToggle<cr>', desc = '[D]ebug [V]iew toggle' },
