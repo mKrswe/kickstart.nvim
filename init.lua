@@ -293,6 +293,14 @@ require('lazy').setup({
         topdelete = { text = '‾' },
         changedelete = { text = '~' },
       },
+      current_line_blame = true,
+      current_line_blame_opts = {
+        delay = 1000,
+      },
+    },
+    keys = {
+      { '<leader>gB', function() require('gitsigns').blame() end, desc = '[G]it [B]lame file' },
+      { '<leader>gb', function() require('gitsigns').blame_line() end, desc = '[G]it [b]lame line' },
     },
   },
   { -- Fuzzy Finder (files, lsp, etc)
